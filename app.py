@@ -10,14 +10,17 @@ app.secret_key = "super_secret_key_123"
 app.config["UPLOAD_FOLDER"] = "uploads"
 
 # Database connection
-db = mysql.connector.connect(
-    host="localhost",
-    user="root",
-    password="",   # keep empty if default XAMPP
-    database="hostel_db"
-)
-
-cursor = db.cursor()
+try:
+    db = mysql.connector.connect(
+        host="localhost",
+        user="root",
+        password="",
+        database="hostel_db"
+    )
+    cursor = db.cursor()
+except:
+    db = None
+    cursor = None
 
 @app.route("/")
 def home():
@@ -253,4 +256,5 @@ def logout():
     return redirect("/")
 
 if __name__ == "__main__":
+
     app.run(debug=True)
