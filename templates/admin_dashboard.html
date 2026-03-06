@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="navbar">
+        <h3><i class="fa-solid fa-building"></i> Hostel Complaint System</h3>
+        <div>
+            <a href="/">Home</a>
+            <a href="/logout">Logout</a>
+        </div>
+    </div>
+    <div class="container">
+
+    <h2>All Complaints</h2>
+
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>Email</th>
+            <th>Room No</th>
+            <th>Category</th>
+            <th>Description</th>
+            <th>Status</th>
+            <th>Image</th>
+            <th>Review</th>
+            <th>Action</th>
+        </tr>
+
+        {% for complaint in complaints %}
+        <tr>
+            <td>{{ complaint[0] }}</td>
+            <td>{{ complaint[1] }}</td>
+            <td>{{ complaint[8] }}</td>
+            <td>{{ complaint[2] }}</td>
+            <td>{{ complaint[3] }}</td>
+            <td class="status 
+                {% if complaint[4]=='Pending' %}pending
+                {% elif complaint[4]=='In-Progress' %}inprogress
+                {% elif complaint[4]=='Resolved' %}resolved
+                {% endif %}">
+                {{ complaint[4] }}
+            </td>
+
+            <!-- Image Column -->
+            <td>
+                {% if complaint[6] %}
+                    <img src="/uploads/{{ complaint[6] }}" width="100">
+                {% else %}
+                    No Image
+                {% endif %}
+            </td>
+
+            <!-- Review Column -->
+            <td>
+                {% if complaint[7] %}
+                    {{ complaint[7] }}
+                {% else %}
+                    No Review
+                {% endif %}
+            </td>
+
+            <!-- Action Column -->
+            <td>
+                <form action="/update_complaint/{{ complaint[0] }}" method="POST">
+
+                    <select name="worker">
+                        <option value="">Assign Worker</option>
+                        <option value="Ramesh Patel">Ramesh Patel</option>
+                        <option value="Suresh Yadav">Suresh Yadav</option>
+                        <option value="Mahesh Kumar">Mahesh Kumar</option>
+                        <option value="Arjun Mehta">Arjun Mehta</option>
+                        <option value="Vikram Shah">Vikram Shah</option>
+                    </select>
+
+                    <select name="status">
+                        <option value="Pending">Pending</option>
+                        <option value="In-Progress">In-Progress</option>
+                        <option value="Resolved">Resolved</option>
+                    </select>
+
+                    <button type="submit" onclick="return confirmUpdate()">Update</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+
+    </table>
+    <a href="/logout">Logout</a>
+</div>
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
