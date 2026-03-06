@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Add Review</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h2>Add Review</h2>
+
+    <form method="POST">
+        <textarea name="review" placeholder="Write your feedback..." required></textarea><br><br>
+        <button type="submit">Submit Review</button>
+    </form>
+
+    <br>
+    <a href="/">Back</a>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Complaints</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="navbar">
+        <h2><i class="fa-solid fa-building"></i> Hostel Complaint System</h2>
+        <div>
+            <a href="/">Home</a>
+            <a href="/logout">Logout</a>
+        </div>
+    </div>
+    <div class="container">
+        <h2>My Complaints</h2>
+        <table border="1" cellpadding="10">
+            <tr>
+                <th>ID</th>
+                <th>Category</th>
+                <th>Description</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+
+            {% for complaint in complaints %}
+            <tr>
+                <td>{{ complaint[0] }}</td>
+                <td>{{ complaint[2] }}</td>
+                <td>{{ complaint[3] }}</td>
+                <td class="status 
+                    {% if complaint[4]=='Pending' %}pending
+                    {% elif complaint[4]=='In-Progress' %}inprogress
+                    {% elif complaint[4]=='Resolved' %}resolved
+                    {% endif %}">
+                    {{ complaint[4] }}
+                </td>
+
+                <td>
+                    {% if complaint[4] == "Pending" %}
+                        <form action="/delete_complaint/{{ complaint[0] }}/{{ email }}" method="GET" style="display:inline;">
+                            <button type="submit" onclick="return confirmDelete()">Delete</button>
+                        </form>
+
+                    {% elif complaint[4] == "Resolved" and not complaint[7] %}
+                        <a href="/add_review/{{ complaint[0] }}/{{ email }}">Add Review</a>
+
+                    {% elif complaint[4] == "Resolved" and complaint[7] %}
+                        Review Submitted
+
+                    {% else %}
+                        No Action
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+
+        <br><br>
+        <a href="/login">Back to Login</a>
+        <a href="/logout" style="float:right;">Logout</a>
+    </div>
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

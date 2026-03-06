@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Student Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <!-- Navbar -->
+    <div class="navbar">
+        <h2><i class="fa-solid fa-building"></i> Hostel Complaint System</h2>
+        <a href="/logout">Logout</a>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container">
+
+        <h2>Welcome {{ email }}</h2>
+
+        <h3>Submit Complaint</h3>
+
+        <form action="/submit_complaint" method="POST" enctype="multipart/form-data">
+
+            <input type="hidden" name="email" value="{{ email }}">
+
+            <select name="category" required>
+                <option value="">Select Category</option>
+                <option value="Water">Water</option>
+                <option value="Electricity">Electricity</option>
+                <option value="Cleanliness">Cleanliness</option>
+                <option value="WiFi">WiFi</option>
+                <option value="Mess">Mess</option>
+            </select>
+
+            <textarea name="description" placeholder="Describe your issue" required></textarea>
+            <input type="file" name="image" accept="image/*">
+            <button type="submit">
+                <i class="fa-solid fa-paper-plane"></i> Submit Complaint
+            </button>
+
+        </form>
+
+        <br><br>
+
+        <a href="/view_complaints/{{ email }}" class="btn">
+            View My Complaints
+        </a>
+
+    </div>
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
