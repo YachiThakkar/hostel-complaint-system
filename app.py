@@ -12,11 +12,11 @@ app.config["UPLOAD_FOLDER"] = "uploads"
 
 try:
     db = mysql.connector.connect(
-    host="mysql.railway.internal",
+    host="mainline.proxy.rlwy.net",
     user="root",
-    password="HerxyIjZvpIOczcAPmCBqEBgKmJqItsJ",
+    password="wUVXOgtnjlitmZqbQBdPedWaVTfhPODa",
     database="railway",
-    port=3306
+    port=35231
 )
     cursor = db.cursor()
     DB_AVAILABLE = True
@@ -338,4 +338,5 @@ def logout():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
 
