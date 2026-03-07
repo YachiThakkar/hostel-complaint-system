@@ -36,6 +36,7 @@ def home():
 @app.route("/register")
 def register():
     return render_template("register.html")
+
 @app.route("/register_user", methods=["POST"])
 def register_user():
 
@@ -48,8 +49,13 @@ def register_user():
         password = generate_password_hash(request.form["password"])
         room = request.form["room"]
 
-        query = "INSERT INTO students (id, name, email, password, room_number) VALUES (NULL, %s, %s, %s, %s)"
-        values = (name, email, password, room)
+        # get next id
+        cursor.execute("SELECT MAX(id) FROM students")
+        result = cursor.fetchone()
+        next_id = 1 if result[0] is None else result[0] + 1
+
+        query = "INSERT INTO students (id, name, email, password, room_number) VALUES (%s, %s, %s, %s, %s)"
+        values = (next_id, name, email, password, room)
 
         cursor.execute(query, values)
         db.commit()
@@ -341,6 +347,7 @@ def logout():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
 
 
 
