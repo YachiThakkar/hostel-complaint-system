@@ -48,7 +48,7 @@ def register_user():
     password = generate_password_hash(request.form["password"])
     room = request.form["room"]
 
-    query = "INSERT INTO students (name, email, password, room_number) VALUES (%s,%s,%s,%s)"
+    query = "INSERT INTO students (id, name, email, password, room_number) VALUES (NULL, %s, %s, %s, %s)"
     values = (name, email, password, room)
 
     cursor.execute(query, values)
@@ -338,5 +338,6 @@ def logout():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
 
 
