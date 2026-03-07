@@ -56,6 +56,9 @@ def register_user():
 
     return "Registration Successful!"
 
+    except Exception as e:
+    return f"Error: {str(e)}"
+
 # ---------------- LOGIN ----------------
 
 @app.route("/login")
@@ -338,6 +341,7 @@ def logout():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
 
 
 
