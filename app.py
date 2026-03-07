@@ -36,28 +36,28 @@ def home():
 @app.route("/register")
 def register():
     return render_template("register.html")
-
 @app.route("/register_user", methods=["POST"])
 def register_user():
 
     if not DB_AVAILABLE:
         return "Database not available in hosted demo."
 
-    name = request.form["name"]
-    email = request.form["email"]
-    password = generate_password_hash(request.form["password"])
-    room = request.form["room"]
+    try:
+        name = request.form["name"]
+        email = request.form["email"]
+        password = generate_password_hash(request.form["password"])
+        room = request.form["room"]
 
-    query = "INSERT INTO students (id, name, email, password, room_number) VALUES (NULL, %s, %s, %s, %s)"
-    values = (name, email, password, room)
+        query = "INSERT INTO students (id, name, email, password, room_number) VALUES (NULL, %s, %s, %s, %s)"
+        values = (name, email, password, room)
 
-    cursor.execute(query, values)
-    db.commit()
+        cursor.execute(query, values)
+        db.commit()
 
-    return "Registration Successful!"
+        return "Registration Successful!"
 
     except Exception as e:
-    return f"Error: {str(e)}"
+        return str(e)
 
 # ---------------- LOGIN ----------------
 
@@ -341,6 +341,7 @@ def logout():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
 
 
 
