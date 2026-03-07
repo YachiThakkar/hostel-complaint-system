@@ -112,27 +112,36 @@ def submit_complaint():
     if not DB_AVAILABLE:
         return "Database not available in hosted demo."
 
-    email = request.form["email"]
-    category = request.form["category"]
-    description = request.form["description"]
+    try:
+        email = request.form["email"]
+        category = request.form["category"]
+        description = request.form["description"]
 
-    file = request.files.get("image")
+        file = request.files.get("image")
 
-    filename = ""
-    if file and file.filename != "":
-        filename = secure_filename(file.filename)
-        file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
+        filename = ""
+        if file and file.filename != "":
+            filename = secure_filename(file.filename)
+            file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
 
-    query = """
-    INSERT INTO complaints (student_email, category, description, image)
-    VALUES (%s,%s,%s,%s)
-    """
+        # get next complaint id
+        cursor.execute("SELECT MAX(id) FROM complaints")
+        result = cursor.fetchone()
+        next_id = 1 if result[0] is None else result[0] + 1
 
-    cursor.execute(query, (email, category, description, filename))
-    db.commit()
+        query = """
+        INSERT INTO complaints (id, student_email, category, description, image)
+        VALUES (%s, %s, %s, %s, %s)
+        """
 
-    return "Complaint Submitted Successfully!"
+        cursor.execute(query, (next_id, email, category, description, filename))
+        db.commit()
 
+        return "Complaint Submitted Successfully!"
+
+    except Exception as e:
+        return str(e)
+        
 # ---------------- VIEW COMPLAINTS ----------------
 
 @app.route("/view_complaints/<email>")
@@ -347,6 +356,7 @@ def logout():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
 
 
 
