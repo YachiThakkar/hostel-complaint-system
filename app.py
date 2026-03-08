@@ -10,13 +10,15 @@ app.config["UPLOAD_FOLDER"] = "uploads"
 
 # ---------------- DATABASE CONNECTION ----------------
 
+# ---------------- DATABASE CONNECTION ----------------
+
 DB_AVAILABLE = True
 
 try:
     db = mysql.connector.connect(
         host="mainline.proxy.rlwy.net",
         user="root",
-        password="YOUR_RAILWAY_PASSWORD",
+        password="wUVXOgtnjlitmZqbQBdPedWaVTfhPODa",
         database="railway",
         port=35231
     )
@@ -25,10 +27,9 @@ try:
 
 except Exception as e:
     print("DATABASE CONNECTION FAILED:", e)
+    DB_AVAILABLE = False
     db = None
     cursor = None
-    DB_AVAILABLE = False
-
 
 # ---------------- HOME ----------------
 
@@ -377,3 +378,4 @@ def logout():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
