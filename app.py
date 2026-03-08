@@ -10,24 +10,25 @@ app.config["UPLOAD_FOLDER"] = "uploads"
 
 # ---------------- DATABASE CONNECTION ----------------
 
+DB_AVAILABLE = True
+
 try:
-    def get_db_connection():
-    return mysql.connector.connect(
-        host=os.environ.get("mysql.railway.internal"),
-        user=os.environ.get("root"),
-        password=os.environ.get("wUVXOgtnjlitmZqbQBdPedWaVTfhPODa"),
-        database=os.environ.get("railway"),
-        port=int(os.environ.get("3306")),
-        connection_timeout=30
+    db = mysql.connector.connect(
+        host="mainline.proxy.rlwy.net",
+        user="root",
+        password="YOUR_RAILWAY_PASSWORD",
+        database="railway",
+        port=35231
     )
 
-db = get_db_connection()
-cursor = db.cursor()
+    cursor = db.cursor()
 
-except:
+except Exception as e:
+    print("DATABASE CONNECTION FAILED:", e)
     db = None
     cursor = None
     DB_AVAILABLE = False
+
 
 # ---------------- HOME ----------------
 
@@ -35,11 +36,13 @@ except:
 def home():
     return render_template("index.html")
 
+
 # ---------------- REGISTER ----------------
 
 @app.route("/register")
 def register():
     return render_template("register.html")
+
 
 @app.route("/register_user", methods=["POST"])
 def register_user():
@@ -53,15 +56,12 @@ def register_user():
         password = generate_password_hash(request.form["password"])
         room = request.form["room"]
 
-        # get next id
         cursor.execute("SELECT MAX(id) FROM students")
         result = cursor.fetchone()
         next_id = 1 if result[0] is None else result[0] + 1
 
-        query = "INSERT INTO students (id, name, email, password, room_number) VALUES (%s, %s, %s, %s, %s)"
-        values = (next_id, name, email, password, room)
-
-        cursor.execute(query, values)
+        query = "INSERT INTO students (id, name, email, password, room_number) VALUES (%s,%s,%s,%s,%s)"
+        cursor.execute(query, (next_id, name, email, password, room))
         db.commit()
 
         return "Registration Successful!"
@@ -69,11 +69,13 @@ def register_user():
     except Exception as e:
         return str(e)
 
+
 # ---------------- LOGIN ----------------
 
 @app.route("/login")
 def login():
     return render_template("login.html")
+
 
 @app.route("/login_user", methods=["POST"])
 def login_user():
@@ -95,6 +97,7 @@ def login_user():
     else:
         return "Invalid Email or Password"
 
+
 # ---------------- STUDENT DASHBOARD ----------------
 
 @app.route("/dashboard/<email>")
@@ -107,6 +110,7 @@ def dashboard(email):
         return redirect("/")
 
     return render_template("dashboard.html", email=email)
+
 
 # ---------------- SUBMIT COMPLAINT ----------------
 
@@ -126,16 +130,16 @@ def submit_complaint():
         filename = ""
         if file and file.filename != "":
             filename = secure_filename(file.filename)
+            os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
             file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
 
-        # get next complaint id
         cursor.execute("SELECT MAX(id) FROM complaints")
         result = cursor.fetchone()
         next_id = 1 if result[0] is None else result[0] + 1
 
         query = """
         INSERT INTO complaints (id, student_email, category, description, image)
-        VALUES (%s, %s, %s, %s, %s)
+        VALUES (%s,%s,%s,%s,%s)
         """
 
         cursor.execute(query, (next_id, email, category, description, filename))
@@ -145,7 +149,8 @@ def submit_complaint():
 
     except Exception as e:
         return str(e)
-        
+
+
 # ---------------- VIEW COMPLAINTS ----------------
 
 @app.route("/view_complaints/<email>")
@@ -166,11 +171,13 @@ def view_complaints(email):
 
     return render_template("view_complaints.html", complaints=complaints, email=email)
 
+
 # ---------------- ADMIN LOGIN ----------------
 
 @app.route("/admin_login")
 def admin_login():
     return render_template("admin_login.html")
+
 
 @app.route("/admin_login_check", methods=["POST"])
 def admin_login_check():
@@ -191,6 +198,7 @@ def admin_login_check():
         return redirect("/admin_dashboard")
     else:
         return "Invalid Admin Credentials"
+
 
 # ---------------- ADMIN DASHBOARD ----------------
 
@@ -214,6 +222,7 @@ def admin_dashboard():
 
     return render_template("admin_dashboard.html", complaints=complaints)
 
+
 # ---------------- UPDATE COMPLAINT ----------------
 
 @app.route("/update_complaint/<int:id>", methods=["POST"])
@@ -231,11 +240,13 @@ def update_complaint(id):
 
     return redirect("/admin_dashboard")
 
+
 # ---------------- UPLOADS ----------------
 
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
 
 # ---------------- DELETE COMPLAINT ----------------
 
@@ -250,6 +261,7 @@ def delete_complaint(id, email):
     db.commit()
 
     return redirect("/view_complaints/" + email)
+
 
 # ---------------- STAFF LOGIN ----------------
 
@@ -276,6 +288,7 @@ def staff_login():
             return "Invalid Credentials"
 
     return render_template("staff_login.html")
+
 
 # ---------------- STAFF DASHBOARD ----------------
 
@@ -314,6 +327,7 @@ def staff_dashboard(email):
         worker_name=worker_name
     )
 
+
 # ---------------- STAFF UPDATE ----------------
 
 @app.route("/staff_update/<int:id>/<email>", methods=["POST"])
@@ -329,6 +343,7 @@ def staff_update(id, email):
     db.commit()
 
     return redirect("/staff_dashboard/" + email)
+
 
 # ---------------- REVIEW ----------------
 
@@ -349,6 +364,7 @@ def add_review(id, email):
 
     return render_template("add_review.html", id=id, email=email)
 
+
 # ---------------- LOGOUT ----------------
 
 @app.route("/logout")
@@ -356,17 +372,8 @@ def logout():
     session.clear()
     return redirect("/")
 
+
 # ---------------- RUN ----------------
 
 if __name__ == "__main__":
     app.run(debug=True)
-
-
-
-
-
-
-
-
-
-
