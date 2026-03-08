@@ -11,15 +11,19 @@ app.config["UPLOAD_FOLDER"] = "uploads"
 # ---------------- DATABASE CONNECTION ----------------
 
 try:
-    db = mysql.connector.connect(
-    host="mysql.railway.internal",
-    user="root",
-    password="wUVXOgtnjlitmZqbQBdPedWaVTfhPODa",
-    database="railway",
-    port=35231
-)
-    cursor = db.cursor()
-    DB_AVAILABLE = True
+    def get_db_connection():
+    return mysql.connector.connect(
+        host=os.environ.get("mysql.railway.internal"),
+        user=os.environ.get("root"),
+        password=os.environ.get("wUVXOgtnjlitmZqbQBdPedWaVTfhPODa"),
+        database=os.environ.get("railway"),
+        port=int(os.environ.get("3306")),
+        connection_timeout=30
+    )
+
+db = get_db_connection()
+cursor = db.cursor()
+
 except:
     db = None
     cursor = None
@@ -356,6 +360,7 @@ def logout():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
 
 
 
