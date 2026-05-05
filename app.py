@@ -1,35 +1,21 @@
 import os
+import sqlite3
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from flask import Flask, render_template, request, redirect, session, send_from_directory
-import mysql.connector
 
 app = Flask(__name__)
 app.secret_key = "super_secret_key_123"
 app.config["UPLOAD_FOLDER"] = "uploads"
 
-# ---------------- DATABASE CONNECTION ----------------
 
-# ---------------- DATABASE CONNECTION ----------------
+# ---------------- DATABASE ----------------
 
-DB_AVAILABLE = True
+def get_db():
+    conn = sqlite3.connect("database.db")
+    conn.row_factory = sqlite3.Row
+    return conn
 
-try:
-    db = mysql.connector.connect(
-        host="mainline.proxy.rlwy.net",
-        user="root",
-        password="wUVXOgtnjlitmZqbQBdPedWaVTfhPODa",
-        database="railway",
-        port=35231
-    )
-
-    cursor = db.cursor()
-
-except Exception as e:
-    print("DATABASE CONNECTION FAILED:", e)
-    DB_AVAILABLE = False
-    db = None
-    cursor = None
 
 # ---------------- HOME ----------------
 
@@ -47,28 +33,23 @@ def register():
 
 @app.route("/register_user", methods=["POST"])
 def register_user():
+    conn = get_db()
+    cursor = conn.cursor()
 
-    if not DB_AVAILABLE:
-        return "Database not available in hosted demo."
+    name = request.form["name"]
+    email = request.form["email"]
+    password = generate_password_hash(request.form["password"])
+    room = request.form["room"]
 
-    try:
-        name = request.form["name"]
-        email = request.form["email"]
-        password = generate_password_hash(request.form["password"])
-        room = request.form["room"]
+    cursor.execute(
+        "INSERT INTO students (name, email, password, room_number) VALUES (?, ?, ?, ?)",
+        (name, email, password, room)
+    )
 
-        cursor.execute("SELECT MAX(id) FROM students")
-        result = cursor.fetchone()
-        next_id = 1 if result[0] is None else result[0] + 1
+    conn.commit()
+    conn.close()
 
-        query = "INSERT INTO students (id, name, email, password, room_number) VALUES (%s,%s,%s,%s,%s)"
-        cursor.execute(query, (next_id, name, email, password, room))
-        db.commit()
-
-        return "Registration Successful!"
-
-    except Exception as e:
-        return str(e)
+    return "Registration Successful!"
 
 
 # ---------------- LOGIN ----------------
@@ -80,18 +61,18 @@ def login():
 
 @app.route("/login_user", methods=["POST"])
 def login_user():
-
-    if not DB_AVAILABLE:
-        return "Database not available in hosted demo."
+    conn = get_db()
+    cursor = conn.cursor()
 
     email = request.form["email"]
     password = request.form["password"]
 
-    query = "SELECT * FROM students WHERE email=%s"
-    cursor.execute(query, (email,))
+    cursor.execute("SELECT * FROM students WHERE email=?", (email,))
     user = cursor.fetchone()
 
-    if user and check_password_hash(user[3], password):
+    conn.close()
+
+    if user and check_password_hash(user["password"], password):
         session["user"] = email
         session["role"] = "student"
         return redirect("/dashboard/" + email)
@@ -103,7 +84,6 @@ def login_user():
 
 @app.route("/dashboard/<email>")
 def dashboard(email):
-
     if "role" not in session or session["role"] != "student":
         return redirect("/")
 
@@ -117,58 +97,49 @@ def dashboard(email):
 
 @app.route("/submit_complaint", methods=["POST"])
 def submit_complaint():
+    conn = get_db()
+    cursor = conn.cursor()
 
-    if not DB_AVAILABLE:
-        return "Database not available in hosted demo."
+    email = request.form["email"]
+    category = request.form["category"]
+    description = request.form["description"]
 
-    try:
-        email = request.form["email"]
-        category = request.form["category"]
-        description = request.form["description"]
+    file = request.files.get("image")
 
-        file = request.files.get("image")
+    filename = ""
+    if file and file.filename != "":
+        os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+        filename = secure_filename(file.filename)
+        file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
 
-        filename = ""
-        if file and file.filename != "":
-            filename = secure_filename(file.filename)
-            os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
-            file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
+    cursor.execute(
+        "INSERT INTO complaints (student_email, category, description, image) VALUES (?, ?, ?, ?)",
+        (email, category, description, filename)
+    )
 
-        cursor.execute("SELECT MAX(id) FROM complaints")
-        result = cursor.fetchone()
-        next_id = 1 if result[0] is None else result[0] + 1
+    conn.commit()
+    conn.close()
 
-        query = """
-        INSERT INTO complaints (id, student_email, category, description, image)
-        VALUES (%s,%s,%s,%s,%s)
-        """
-
-        cursor.execute(query, (next_id, email, category, description, filename))
-        db.commit()
-
-        return "Complaint Submitted Successfully!"
-
-    except Exception as e:
-        return str(e)
+    return "Complaint Submitted Successfully!"
 
 
 # ---------------- VIEW COMPLAINTS ----------------
 
 @app.route("/view_complaints/<email>")
 def view_complaints(email):
-
-    if not DB_AVAILABLE:
-        return "Database not available in hosted demo."
-
     if "role" not in session or session["role"] != "student":
         return redirect("/")
 
     if session["user"] != email:
         return redirect("/")
 
-    query = "SELECT * FROM complaints WHERE student_email=%s"
-    cursor.execute(query, (email,))
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM complaints WHERE student_email=?", (email,))
     complaints = cursor.fetchall()
+
+    conn.close()
 
     return render_template("view_complaints.html", complaints=complaints, email=email)
 
@@ -182,16 +153,16 @@ def admin_login():
 
 @app.route("/admin_login_check", methods=["POST"])
 def admin_login_check():
-
-    if not DB_AVAILABLE:
-        return "Database not available in hosted demo."
+    conn = get_db()
+    cursor = conn.cursor()
 
     email = request.form["email"]
     password = request.form["password"]
 
-    query = "SELECT * FROM admin WHERE email=%s AND password=%s"
-    cursor.execute(query, (email, password))
+    cursor.execute("SELECT * FROM admin WHERE email=? AND password=?", (email, password))
     admin = cursor.fetchone()
+
+    conn.close()
 
     if admin:
         session["user"] = email
@@ -205,21 +176,21 @@ def admin_login_check():
 
 @app.route("/admin_dashboard")
 def admin_dashboard():
-
-    if not DB_AVAILABLE:
-        return "Database not available in hosted demo."
-
     if "role" not in session or session["role"] != "admin":
         return redirect("/")
 
-    query = """
-    SELECT complaints.*, students.room_number
-    FROM complaints
-    JOIN students ON complaints.student_email = students.email
-    """
+    conn = get_db()
+    cursor = conn.cursor()
 
-    cursor.execute(query)
+    cursor.execute("""
+        SELECT complaints.*, students.room_number
+        FROM complaints
+        JOIN students ON complaints.student_email = students.email
+    """)
+
     complaints = cursor.fetchall()
+
+    conn.close()
 
     return render_template("admin_dashboard.html", complaints=complaints)
 
@@ -228,38 +199,33 @@ def admin_dashboard():
 
 @app.route("/update_complaint/<int:id>", methods=["POST"])
 def update_complaint(id):
-
-    if not DB_AVAILABLE:
-        return "Database not available in hosted demo."
+    conn = get_db()
+    cursor = conn.cursor()
 
     worker = request.form["worker"]
     status = request.form["status"]
 
-    query = "UPDATE complaints SET assigned_worker=%s, status=%s WHERE id=%s"
-    cursor.execute(query, (worker, status, id))
-    db.commit()
+    cursor.execute(
+        "UPDATE complaints SET assigned_worker=?, status=? WHERE id=?",
+        (worker, status, id)
+    )
+
+    conn.commit()
+    conn.close()
 
     return redirect("/admin_dashboard")
-
-
-# ---------------- UPLOADS ----------------
-
-@app.route('/uploads/<filename>')
-def uploaded_file(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 
 # ---------------- DELETE COMPLAINT ----------------
 
 @app.route("/delete_complaint/<int:id>/<email>")
 def delete_complaint(id, email):
+    conn = get_db()
+    cursor = conn.cursor()
 
-    if not DB_AVAILABLE:
-        return "Database not available in hosted demo."
-
-    query = "DELETE FROM complaints WHERE id=%s"
-    cursor.execute(query, (id,))
-    db.commit()
+    cursor.execute("DELETE FROM complaints WHERE id=?", (id,))
+    conn.commit()
+    conn.close()
 
     return redirect("/view_complaints/" + email)
 
@@ -268,18 +234,17 @@ def delete_complaint(id, email):
 
 @app.route("/staff_login", methods=["GET", "POST"])
 def staff_login():
-
     if request.method == "POST":
-
-        if not DB_AVAILABLE:
-            return "Database not available in hosted demo."
+        conn = get_db()
+        cursor = conn.cursor()
 
         email = request.form["email"]
         password = request.form["password"]
 
-        query = "SELECT * FROM workers WHERE email=%s AND password=%s"
-        cursor.execute(query, (email, password))
+        cursor.execute("SELECT * FROM workers WHERE email=? AND password=?", (email, password))
         worker = cursor.fetchone()
+
+        conn.close()
 
         if worker:
             session["user"] = email
@@ -295,53 +260,50 @@ def staff_login():
 
 @app.route("/staff_dashboard/<email>")
 def staff_dashboard(email):
-
-    if not DB_AVAILABLE:
-        return "Database not available in hosted demo."
-
     if "role" not in session or session["role"] != "staff":
         return redirect("/")
 
-    query = "SELECT name FROM workers WHERE email=%s"
-    cursor.execute(query, (email,))
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT name FROM workers WHERE email=?", (email,))
     worker = cursor.fetchone()
 
     if not worker:
         return "Worker not found"
 
-    worker_name = worker[0]
+    worker_name = worker["name"]
 
-    query = """
-    SELECT complaints.*, students.room_number
-    FROM complaints
-    JOIN students ON complaints.student_email = students.email
-    WHERE complaints.assigned_worker=%s
-    """
+    cursor.execute("""
+        SELECT complaints.*, students.room_number
+        FROM complaints
+        JOIN students ON complaints.student_email = students.email
+        WHERE complaints.assigned_worker=?
+    """, (worker_name,))
 
-    cursor.execute(query, (worker_name,))
     complaints = cursor.fetchall()
 
-    return render_template(
-        "staff_dashboard.html",
-        complaints=complaints,
-        email=email,
-        worker_name=worker_name
-    )
+    conn.close()
+
+    return render_template("staff_dashboard.html",
+                           complaints=complaints,
+                           email=email,
+                           worker_name=worker_name)
 
 
 # ---------------- STAFF UPDATE ----------------
 
 @app.route("/staff_update/<int:id>/<email>", methods=["POST"])
 def staff_update(id, email):
-
-    if not DB_AVAILABLE:
-        return "Database not available in hosted demo."
+    conn = get_db()
+    cursor = conn.cursor()
 
     status = request.form["status"]
 
-    query = "UPDATE complaints SET status=%s WHERE id=%s"
-    cursor.execute(query, (status, id))
-    db.commit()
+    cursor.execute("UPDATE complaints SET status=? WHERE id=?", (status, id))
+
+    conn.commit()
+    conn.close()
 
     return redirect("/staff_dashboard/" + email)
 
@@ -350,20 +312,27 @@ def staff_update(id, email):
 
 @app.route("/add_review/<int:id>/<email>", methods=["GET", "POST"])
 def add_review(id, email):
-
-    if not DB_AVAILABLE:
-        return "Database not available in hosted demo."
-
     if request.method == "POST":
+        conn = get_db()
+        cursor = conn.cursor()
+
         review = request.form["review"]
 
-        query = "UPDATE complaints SET review=%s WHERE id=%s"
-        cursor.execute(query, (review, id))
-        db.commit()
+        cursor.execute("UPDATE complaints SET review=? WHERE id=?", (review, id))
+
+        conn.commit()
+        conn.close()
 
         return redirect("/view_complaints/" + email)
 
     return render_template("add_review.html", id=id, email=email)
+
+
+# ---------------- FILES ----------------
+
+@app.route('/uploads/<filename>')
+def uploaded_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 
 # ---------------- LOGOUT ----------------
@@ -378,4 +347,3 @@ def logout():
 
 if __name__ == "__main__":
     app.run(debug=True)
-
